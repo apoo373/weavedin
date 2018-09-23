@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
 import os
+import inventory
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -31,6 +32,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'inventory.apps.InventoryConfig',
+    'django_cassandra_engine',      # Cassandra Engine
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
