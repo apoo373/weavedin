@@ -12,20 +12,28 @@ class Item(models.Model):
     Brand = models.CharField(max_length=200)
     Category = models.CharField(max_length=200)
     ProductCode = models.CharField(max_length=200)
+    def __unicode__(self):
+        return self.ProductCode
 
 class Variant(models.Model):
     Name = models.CharField(max_length=200)
     CostPrice = models.FloatField()
     SellingPrice = models.FloatField()
     Quantity = models.IntegerField(default=0)
-    Item = models.ForeignKey(Item, on_delete=None)
+    Item = models.ForeignKey(Item, on_delete=models.CASCADE)
+    def __unicode__(self):
+        return self.Name
 
 class Property(models.Model):
     Name = models.CharField(max_length=200)
     Value = models.CharField(max_length=200)
-    Variant = models.ForeignKey(Variant, on_delete=None)
+    Variant = models.ForeignKey(Variant, on_delete=models.CASCADE)
+    def __unicode__(self):
+        return self.Name
 
 class InventoryLog(models.Model):
     time = models.DateTimeField(auto_now_add=True, editable=False, null=False, blank=False)
     user = models.ForeignKey(User)
     content = models.TextField(blank=True)
+    def __unicode__(self):
+        return self.content
