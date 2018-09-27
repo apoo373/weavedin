@@ -5,6 +5,7 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse, Http404
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout
 from django.forms.models import model_to_dict
 
 from models import InventoryLog, Item, Variant, Property
@@ -26,19 +27,28 @@ def CheckDiff(formData, originalData, param):
 
 
 # Login view
-def login(request):
+def user_login(request):
     # Implement the next Forward Functionality
-    return HttpResponse("You've Reached Login Page")
+    if request.user.is_authenticated():
+        return redirect("/inventory/allItems")
+    redirection = request.GET.get('next', '')
+    if redirection == "":
+        redirection = "?next=/inventory/allItems"
+    else:
+        redirection = "?next=" + redirection
+    return redirect("/admin/login/" + redirection)
 
 # Logout view
-def logout(request):
-    return HttpResponse("You've Reached Logout Page")
+def user_logout(request):
+    logout(request)
+    return HttpResponse("You've been Succesfully Logged Out !!")
 
 # Get all Items
 @login_required()
 def allItems(request):
     allItems = Item.objects.all()
-    return render(request, 'inventory/allItems.html', {'allItems': allItems})
+    newItem = ItemForm()
+    return render(request, 'inventory/allItems.html', {'allItems': allItems, 'newItem': newItem})
 
 # Get All Properties of an Item
 @login_required()
@@ -193,6 +203,62 @@ def add_variant(request, item_id):
             LogContent = "Added Variant:(" + str(newVariant.id) + "-" + newVariant.Name + ") of the Item:(" + str(itemData.id) + "-" + itemData.Name + ")"
             CreateLog(request.user, LogContent)
             return HttpResponseRedirect('/inventory/item/' + str(item_id))
+    # if a GET (or any other method) we'll create a blank form
+    else:
+        raise Http404("Get Call Not Supported for This URL")
+
+# Delete Item
+@login_required()
+def delete_item(request, item_id):
+    try:
+        itemData = Item.objects.get(pk=item_id)
+    except Item.DoesNotExist:
+        raise Http404("No Item Exist with this Id")
+    redirectUrl = "/inventory/allItems"
+    LogContent = "Deleted Item:(" + str(itemData.id) + "-" + itemData.Name + ")"
+    itemData.delete()
+    CreateLog(request.user, LogContent)
+    return redirect(redirectUrl)
+
+# Edit the Item
+@login_required
+def edit_item(request, item_id):
+    try:
+        itemData = Item.objects.get(pk=item_id)
+    except Item.DoesNotExist:
+        raise Http404("No Item Exist with this Id")
+    originalObject = model_to_dict(itemData)
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request:
+        form = ItemForm(request.POST, instance=itemData)
+        # check whether it's valid:
+        if form.is_valid():
+            diff = CheckDiff(form, originalObject, ['Name', 'Brand', 'Category', 'ProductCode'])
+            editItem = form.save()
+
+            # Adding to Logs
+            LogContent = "Modified " + diff + " of Item:(" + str(editItem.id) + "-" + editItem.Name + ")"
+            CreateLog(request.user, LogContent)
+            return HttpResponseRedirect('/inventory/item/' + str(editItem.id))
+    # if a GET (or any other method) we'll create a blank form
+    else:
+        form = ItemForm(instance=itemData)
+    return render(request, 'inventory/editItem.html', {'form': form, 'item': item_id})
+
+# Add Item
+@login_required
+def add_item(request):
+    if request.method == 'POST':
+        form = ItemForm(request.POST)
+        # check whether it's valid:
+        if form.is_valid():
+            newItem = form.save()
+
+            # Adding to Logs
+            LogContent = "Added Item:(" + str(newItem.id) + "-" + newItem.Name + ")"
+            CreateLog(request.user, LogContent)
+            return HttpResponseRedirect('/inventory/allItems')
     # if a GET (or any other method) we'll create a blank form
     else:
         raise Http404("Get Call Not Supported for This URL")
