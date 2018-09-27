@@ -1,0 +1,129 @@
+{% extends "inventory/base.html" %}
+
+{% block content %}
+  <!--Grid row-->
+<div class="row wow fadeIn">
+      <!--Grid column-->
+      <div class="col-md-12 mb-4">
+          <!--Card-->
+          <h5>Item Details</h5>
+          <div class="card">
+              <!--Card content-->
+              <div class="card-body">
+                  <!-- Table  -->
+                  <table class="table table-hover">
+                      <!-- Table body -->
+                      <thead>
+                        <th colspan="2" scope="row"><a href="/inventory/item/{{ item.id }}" class="btn btn-info" role="button">Item</a></th>
+                        <th colspan="2" scope="row"><a href="/inventory/item/{{ item.id }}/{{ variantData.id }}" class="btn btn-info" role="button">Variant</a></th>
+                      </thead>
+                      <tbody>
+                        <tr>
+                            <td>Name</td>
+                            <td>{{ item.Name }}</td>
+                            <td>Name</td>
+                            <td>{{ variantData.Name }}</td>
+                        </tr>
+                        <tr>
+                            <td>Brand</td>
+                            <td>{{ item.Brand }}</td>
+                            <td>Cost Price (Rs)</td>
+                            <td>{{ variantData.CostPrice }}</td>
+                        </tr>
+                        <tr>
+                            <td>Category</td>
+                            <td>{{ item.Category }}</td>
+                            <td>Selling Price (Rs)</td>
+                            <td>{{ variantData.SellingPrice }}</td>
+                        </tr>
+                        <tr>
+                            <td>Product Code</td>
+                            <td>{{ item.ProductCode }}</td>
+                            <td>Quantity</td>
+                            <td>{{ variantData.Quantity }}</td>
+                        </tr>
+                      </tbody>
+                      <!-- Table body -->
+                  </table>
+                  <!-- Table  -->
+
+              </div>
+
+          </div>
+          <!--/.Card-->
+
+      </div>
+  <!--Grid row-->
+</div>
+
+{% if allProperties %}
+<div class="row wow fadeIn">
+
+      <!--Grid column-->
+      <div class="col-md-12 mb-4">
+        <h5>Properties</h5>
+          <!--Card-->
+          <div class="card">
+
+              <!--Card content-->
+              <div class="card-body">
+                  <!-- Table  -->
+                  <table class="table table-hover">
+                      <!-- Table body -->
+                      <thead>
+                        <tr>
+                            <th scope="row">Name</th>
+                            <th scope="row">Quantity</th>
+                            <th scope="row">Cost Price</th>
+                            <th scope="row">Selling Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for eachProperty in allProperties %}
+                          <tr>
+                            <td scope="row">{{ eachProperty.Name }}</td>
+                            <td scope="row">{{ eachProperty.Value }}</td>
+                            <td scope="row"><a href="/inventory/editProperty/{{ eachProperty.id }}" class="btn btn-primary" role="button">Edit</a></td>
+                            <td scope="row"><a href="/inventory/deleteProperty/{{ eachProperty.id }}" class="btn btn-danger" role="button">Delete</a></td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                      <!-- Table body -->
+                  </table>
+                  <!-- Table  -->
+
+              </div>
+
+          </div>
+          <!--/.Card-->
+
+      </div>
+  <!--Grid row-->
+</div>
+{% endif %}
+
+<div class="row wow fadeIn">
+
+      <!--Grid column-->
+      <div class="col-md-12 mb-4">
+        <h5>Add Property</h5>
+          <!--Card-->
+          <div class="card">
+
+              <!--Card content-->
+              <div class="card-body">
+                <form action="/inventory/addProperty/{{ item.id }}/{{ variantData.id }}" method="post">
+                  {% csrf_token %}
+                    {{ addProperty.as_p }}
+                  <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+              </div>
+
+          </div>
+          <!--/.Card-->
+
+      </div>
+  <!--Grid row-->
+</div>
+
+{% endblock %}

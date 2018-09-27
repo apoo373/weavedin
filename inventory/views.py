@@ -5,6 +5,7 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse, Http404
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.forms.models import model_to_dict
 
 from models import InventoryLog, Item, Variant, Property
 from forms import *
@@ -14,6 +15,15 @@ def CreateLog(user, LogContent):
     newLog = InventoryLog(user=user, content=LogContent)
     newLog.save()
     return
+
+# Check The Difference in Parameters
+def CheckDiff(formData, originalData, param):
+    result = []
+    for each_param in param:
+        if formData.cleaned_data[each_param] != originalData[each_param]:
+            result.append(str(each_param))
+    return str(result)
+
 
 # Login view
 def login(request):
@@ -38,7 +48,8 @@ def item_details(request, item_id):
     except Item.DoesNotExist:
         raise Http404("No Item Exist with this Id")
     allVariants = Variant.objects.filter(Item=itemData).all()
-    return render(request, 'inventory/itemVariants.html', {'item': itemData, 'variants': allVariants})
+    newVariantForm = VariantForm()
+    return render(request, 'inventory/itemVariants.html', {'item': itemData, 'variants': allVariants, 'variantForm': newVariantForm})
 
 # Get All Properties of the Variants
 @login_required()
@@ -57,7 +68,7 @@ def variant_details(request, item_id, variant_id):
 
 # Delete Property
 @login_required()
-def deleteProperty(request, property_id):
+def delete_property(request, property_id):
     try:
         property = Property.objects.get(pk=property_id)
     except Property.DoesNotExist:
@@ -70,21 +81,23 @@ def deleteProperty(request, property_id):
 
 # Edit The Given Property
 @login_required
-def editProperty(request, property_id):
+def edit_property(request, property_id):
     try:
         property = Property.objects.get(pk=property_id)
     except Property.DoesNotExist:
         raise Http404("No Property With this Id")
+    originalObject = model_to_dict(property)
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request:
         form = PropertyForm(request.POST, instance=property)
         # check whether it's valid:
         if form.is_valid():
+            diff = CheckDiff(form, originalObject, ["Name", "Value"])
             editPropery = form.save()
 
             # Adding to Logs
-            LogContent = "Modified Property:(" + str(editPropery.id) + "-" + editPropery.Name + ") of the Variant:(" + str(editPropery.Variant.id) + "-" + editPropery.Variant.Name + ")"
+            LogContent = "Modified " + diff + " Property:(" + str(editPropery.id) + "-" + editPropery.Name + ") of the Variant:(" + str(editPropery.Variant.id) + "-" + editPropery.Variant.Name + ")"
             CreateLog(request.user, LogContent)
             return HttpResponseRedirect('/inventory/item/' + str(editPropery.Variant.Item.id) + "/" + str(editPropery.Variant.id))
     # if a GET (or any other method) we'll create a blank form
@@ -94,7 +107,7 @@ def editProperty(request, property_id):
 
 # Add Property to a Variant
 @login_required
-def addProperty(request, item_id, variant_id):
+def add_property(request, item_id, variant_id):
     if request.method == 'POST':
         try:
             itemData = Item.objects.get(pk=item_id)
@@ -120,6 +133,69 @@ def addProperty(request, item_id, variant_id):
     else:
         raise Http404("Get Call Not Supported for This URL")
 
+
+# Delete Property
+@login_required()
+def delete_variant(request, variant_id):
+    try:
+        variantData = Variant.objects.get(pk=variant_id)
+    except Variant.DoesNotExist:
+        raise Http404("No Item Variant Found with this Id")
+    redirectUrl = "/inventory/item/" + str(variantData.Item.id)
+    LogContent = "Deleted Variant:(" + str(variantData.id) + "-" + variantData.Name + ") of the Item:(" + str(variantData.Item.id) + "-" + variantData.Item.Name + ")"
+    variantData.delete()
+    CreateLog(request.user, LogContent)
+    return redirect(redirectUrl)
+
+# Edit The Variant
+@login_required
+def edit_variant(request, variant_id):
+    try:
+        variantData = Variant.objects.get(pk=variant_id)
+    except Variant.DoesNotExist:
+        raise Http404("No Item Variant Found with this Id")
+    originalObject = model_to_dict(variantData)
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request:
+        form = VariantForm(request.POST, instance=variantData)
+        # check whether it's valid:
+        if form.is_valid():
+            diff = CheckDiff(form, originalObject, ["Name", "CostPrice", "SellingPrice", "Quantity"])
+            editPropery = form.save()
+
+            # Adding to Logs
+            LogContent = "Modified " + diff + " of Variant:(" + str(variantData.id) + "-" + variantData.Name + ") of the Item:(" + str(variantData.Item.id) + "-" + variantData.Item.Name + ")"
+            CreateLog(request.user, LogContent)
+            return HttpResponseRedirect('/inventory/item/' + str(variantData.Item.id))
+    # if a GET (or any other method) we'll create a blank form
+    else:
+        form = VariantForm(instance=variantData)
+    return render(request, 'inventory/editVariant.html', {'form': form, 'variant': variant_id})
+
+# Add Variant to an Item
+@login_required
+def add_variant(request, item_id):
+    if request.method == 'POST':
+        try:
+            itemData = Item.objects.get(pk=item_id)
+        except Item.DoesNotExist:
+            raise Http404("No Item Exist with this Id")
+        # create a form instance and populate it with data from the request:
+        form = VariantForm(request.POST)
+        # check whether it's valid:
+        if form.is_valid():
+            newVariant = form.save(commit=False)
+            newVariant.Item = itemData
+            newVariant.save()
+
+            # Adding to Logs
+            LogContent = "Added Variant:(" + str(newVariant.id) + "-" + newVariant.Name + ") of the Item:(" + str(itemData.id) + "-" + itemData.Name + ")"
+            CreateLog(request.user, LogContent)
+            return HttpResponseRedirect('/inventory/item/' + str(item_id))
+    # if a GET (or any other method) we'll create a blank form
+    else:
+        raise Http404("Get Call Not Supported for This URL")
 
 def AggregateFeed(userFeed):
     timeAgg = {}
