@@ -11,6 +11,9 @@ from django.forms.models import model_to_dict
 from models import InventoryLog, Item, Variant, Property
 from forms import *
 
+from dateutil.parser import parse
+from datetime import datetime
+
 # Create your views here.
 def CreateLog(user, LogContent):
     newLog = InventoryLog(user=user, content=LogContent)
@@ -263,26 +266,29 @@ def add_item(request):
     else:
         raise Http404("Get Call Not Supported for This URL")
 
-def AggregateFeed(userFeed):
-    timeAgg = {}
-    for eachEntry in userFeed:
-        concernedTime = eachEntry.time.replace(second=0, microsecond=0)
-        if concernedTime in timeAgg:
-            timeAgg[concernedTime].append(eachEntry.content)
-        else:
-            timeAgg[concernedTime] = [eachEntry.content]
-    return timeAgg
-
 # Generate Report
+@login_required
 def generate_report(request):
-    Response = {}
-    if 'user_id' not in request.GET:
-        userActivity = InventoryLog.objects.filter(user=request.user.id)
-        Response[request.user.id] = AggregateFeed(userActivity)
+    if 'startTime' in request.GET:
+        startTime = parse(request.GET['startTime'])
     else:
-        userIds = request.GET['user_id'].split(",")
-        for user in userIds:
-            userActivity = InventoryLog.objects.filter(user=user)
-            Response[user] = AggregateFeed(userActivity)
+        startTime = parse("Sept. 27, 2000, 10:44 a.m.")
+
+    if 'endTime' in request.GET:
+        endTime = parse(request.GET['endTime'])
+    else:
+        endTime = datetime.now()
+    print startTime
+    print endTime
+    if 'user_id' in request.GET:
+        user_ids = request.GET['user_id'].split(",")
+        print user_ids
+        allUsers = User.objects.filter(pk__in=user_ids)
+    else:
+        allUsers = User.objects.all()
+    Response = {}
+    for user in allUsers:
+        userActivity = InventoryLog.objects.filter(user=user, time__gte=startTime, time__lte=endTime).order_by('-time')
+        Response[user] = userActivity
 
     return render(request, 'inventory/report.html', {'allusers': Response})

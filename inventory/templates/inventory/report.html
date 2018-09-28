@@ -21,17 +21,14 @@
                       <thead>
                         <tr>
                             <th scope="row">Time</th>
+                            <th scope="row">Log Entry</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {% for time, actions in log.items %}
+                        {% for eachRow in log %}
                         <tr>
-                          <button data-toggle="collapse" data-target="#{{ eachuser }}_{{ time }}">{{ time }}</button>
-                          <div id="{{ eachuser }}_{{ time }}" class="">
-                          {% for eachAction in actions %}
-                            {{ eachAction }}<br>
-                          {% endfor %}
-                          </div>
+                          <th scope="row">{{ eachRow.time }}</th>
+                          <th scope="row">{{ eachRow.content }}</th>
                         </tr>
                         {% endfor %}
                       </tbody>

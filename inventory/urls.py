@@ -20,5 +20,6 @@ urlpatterns = [
     url(r'^deleteProperty/(?P<property_id>[0-9]+)$', views.delete_property, name='delete-property'),
     url(r'^editProperty/(?P<property_id>[0-9]+)$', views.edit_property, name='edit-property'),
     url(r'^addProperty/(?P<item_id>[0-9]+)/(?P<variant_id>[0-9]+)$', views.add_property, name='add-property'),
+    # Report Urls
     url(r'^report/?$', views.generate_report, name='generate-report'),
 ]
